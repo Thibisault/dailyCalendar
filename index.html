@@ -257,14 +257,14 @@
       li.className = 'task';
       li.draggable = true;
       li.dataset.id = t.id;
-      li.innerHTML = \`
+      li.innerHTML = `
         <span class="drag" title="Glisser">☰</span>
         <label>
           <input type="checkbox" \${t.done?'checked':''} />
           <input type="text" class="name" value="\${t.name.replace(/"/g,'&quot;')}" />
         </label>
         <button class="btn danger del">✕</button>
-      \`;
+      `;
       const cb = li.querySelector('input[type=checkbox]');
       cb.addEventListener('change', e=> toggleDone(t.id, e.target.checked));
       const nameInput = li.querySelector('.name');
@@ -355,11 +355,11 @@
       const row = document.createElement('div');
       row.className='row';
       row.style.margin='8px 0';
-      row.innerHTML = \`
+      row.innerHTML = `
         <div class="pill" style="min-width:64px;text-align:center">\${pct}%</div>
         <div style="flex:1;font-weight:600">\${info.name}</div>
         <div class="muted">\${info.successDays} / \${info.existedDays} jours</div>
-      \`;
+      `;
       container.appendChild(row);
     });
 
@@ -377,9 +377,9 @@
       const div = document.createElement('div');
       div.className='row';
       div.style.margin='6px 0';
-      div.innerHTML = \`<span class="pill" style="min-width:64px;text-align:center">\${pct}%</span>
+      div.innerHTML = `<span class="pill" style="min-width:64px;text-align:center">\${pct}%</span>
         <strong style="min-width:120px">\${new Date(k).toLocaleDateString('fr-FR')}</strong>
-        <span class="muted">\${completed} / \${total} accomplies</span>\`;
+        <span class="muted">\${completed} / \${total} accomplies</span>`;
       hist.appendChild(div);
     });
   }
