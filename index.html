@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Routine Quotidienne — PWA</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#111827">
+  <link rel="icon" href="icons/icon-192.png">
+  <style>
+    :root{--bg:#0b1220;--card:#111827;--muted:#9ca3af;--text:#e5e7eb;--accent:#3b82f6;--accent-2:#22c55e;--danger:#ef4444;}
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    header{position:sticky;top:0;background:linear-gradient(180deg,#0b1220,#0b1220ee 60%,transparent);backdrop-filter:saturate(120%) blur(4px);z-index:10}
+    .wrap{max-width:760px;margin:0 auto;padding:16px}
+    .tabs{display:flex;gap:8px;margin-top:8px}
+    .tab{flex:1;text-align:center;padding:10px 12px;border-radius:12px;background:#0f172a;border:1px solid #1f2937;cursor:pointer;font-weight:600}
+    .tab.active{outline:2px solid var(--accent)}
+    .card{background:var(--card);border:1px solid #1f2937;border-radius:16px;padding:14px;margin-top:12px;box-shadow:0 6px 24px rgba(0,0,0,.25)}
+    .row{display:flex;gap:8px;align-items:center}
+    .row input[type=text]{flex:1;padding:10px 12px;border-radius:12px;border:1px solid #263042;background:#0f172a;color:var(--text)}
+    .btn{padding:10px 12px;border-radius:12px;border:1px solid #1f2937;background:#0f172a;color:var(--text);cursor:pointer;font-weight:600}
+    .btn.primary{background:var(--accent);border-color:#2a62b9;color:white}
+    .btn.success{background:var(--accent-2);border-color:#178a43;color:white}
+    .btn.danger{background:var(--danger);border-color:#b91c1c;color:white}
+    .btn.ghost{background:transparent}
+    .tasks{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px}
+    .task{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid #1f2937;border-radius:12px;background:#0f172a}
+    .task.dragging{opacity:.5}
+    .drag{cursor:grab;user-select:none;font-size:18px}
+    .task label{flex:1;display:flex;align-items:center;gap:10px}
+    .task input[type=checkbox]{transform:scale(1.2)}
+    .muted{color:var(--muted);font-size:12px}
+    .space{height:6px}
+    .grid{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+    .kpi{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .pill{padding:8px 10px;border-radius:999px;border:1px solid #1f2937;background:#0f172a;display:inline-block}
+    details summary{cursor:pointer}
+    footer{height:40px}
+    .link{color:var(--accent)}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1 style="margin:0">Routine quotidienne</h1>
+      <div class="tabs">
+        <button class="tab active" id="tab-tasks">Tâches</button>
+        <button class="tab" id="tab-stats">Statistiques</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- TÂCHES -->
+    <section id="view-tasks">
+      <div class="card">
+        <div class="row">
+          <input id="new-task-input" type="text" placeholder="Ajouter une tâche quotidienne…" />
+          <button id="add-task-btn" class="btn primary">Ajouter</button>
+        </div>
+        <div class="space"></div>
+        <div class="row" style="gap:12px;flex-wrap:wrap">
+          <button id="reset-now" class="btn success">Réinitialiser maintenant</button>
+          <button id="clear-all" class="btn danger">Supprimer toutes les tâches</button>
+          <span class="muted">Les tâches sont réinitialisées automatiquement chaque jour à minuit.</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="row" style="justify-content:space-between">
+          <strong>Mes tâches du jour</strong>
+          <span class="muted" id="today-label"></span>
+        </div>
+        <ul class="tasks" id="task-list"></ul>
+        <p class="muted">Astuce : maintiens le symbole <span class="drag">☰</span> pour réorganiser.</p>
+      </div>
+    </section>
+
+    <!-- STATS -->
+    <section id="view-stats" style="display:none">
+      <div class="card">
+        <div class="grid">
+          <div class="row" style="gap:6px;flex-wrap:wrap">
+            <label class="pill">Plage :
+              <select id="range-type" style="margin-left:6px;background:#0f172a;color:var(--text);border:1px solid #1f2937;border-radius:8px;padding:6px">
+                <option value="days">Derniers N jours</option>
+                <option value="weeks">Dernières N semaines</option>
+                <option value="months">Derniers N mois</option>
+                <option value="all">Depuis le début</option>
+              </select>
+            </label>
+            <label class="pill" id="n-wrapper">N :
+              <input id="range-n" type="number" min="1" value="7" style="width:72px;margin-left:6px;background:#0f172a;color:var(--text);border:1px solid #1f2937;border-radius:8px;padding:6px">
+            </label>
+            <button id="recalc" class="btn">Recalculer</button>
+          </div>
+          <button id="export-json" class="btn ghost">Exporter données</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <strong>Performance globale</strong>
+        <div class="kpi">
+          <div>
+            <div id="overall-rate" style="font-size:32px;font-weight:800">0%</div>
+            <div class="muted" id="overall-desc">Taux moyen de réussite</div>
+          </div>
+          <div>
+            <div id="days-covered" style="font-size:32px;font-weight:800">0</div>
+            <div class="muted">Jours pris en compte</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <strong>Par tâche</strong>
+        <div id="per-task"></div>
+        <p class="muted">Le pourcentage d’une tâche est calculé sur le nombre de jours où elle existait.</p>
+      </div>
+
+      <details class="card">
+        <summary><strong>Historique (journal quotidien)</strong></summary>
+        <div id="history-list"></div>
+      </details>
+    </section>
+  </main>
+
+  <footer class="wrap">
+    <p class="muted">
+      PWA installable (icône + mode hors-ligne). <a href="https://developer.mozilla.org/fr/docs/Web/Progressive_web_apps" class="link" target="_blank" rel="noreferrer">En savoir plus</a>.
+    </p>
+  </footer>
+
+  <script>
+  // --- Stockage ---
+  const LS = {
+    tasks: 'dt_tasks_v1',
+    history: 'dt_history_v1', // { 'YYYY-MM-DD': { tasks:[ids], completed:{id:bool} } }
+    lastReset: 'dt_last_reset_v1'
+  };
+
+  const todayStr = () => new Date().toLocaleDateString('fr-CA'); // YYYY-MM-DD
+
+  function loadTasks(){
+    try { return JSON.parse(localStorage.getItem(LS.tasks)) || []; } catch { return []; }
+  }
+  function saveTasks(arr){
+    localStorage.setItem(LS.tasks, JSON.stringify(arr));
+  }
+  function loadHistory(){
+    try { return JSON.parse(localStorage.getItem(LS.history)) || {}; } catch { return {}; }
+  }
+  function saveHistory(h){
+    localStorage.setItem(LS.history, JSON.stringify(h));
+  }
+  function getLastReset(){
+    return localStorage.getItem(LS.lastReset);
+  }
+  function setLastReset(d){
+    localStorage.setItem(LS.lastReset, d);
+  }
+
+  // --- Modèle ---
+  function mkId(){ return Math.random().toString(36).slice(2,10); }
+
+  function addTask(name){
+    const tasks = loadTasks();
+    const t = { id: mkId(), name: name.trim(), created: todayStr(), done:false, order: tasks.length };
+    tasks.push(t); saveTasks(tasks); renderTasks();
+  }
+
+  function removeTask(id){
+    const tasks = loadTasks().filter(t => t.id !== id).map((t,i)=>({...t, order:i}));
+    saveTasks(tasks); renderTasks(); // history reste inchangé; l'existence par jour est stockée au reset
+  }
+
+  function toggleDone(id, val){
+    const tasks = loadTasks().map(t => t.id===id? {...t, done: val}: t);
+    saveTasks(tasks);
+  }
+
+  function renameTask(id, newName){
+    const tasks = loadTasks().map(t => t.id===id? {...t, name:newName.trim()}: t);
+    saveTasks(tasks); renderTasks();
+  }
+
+  function reorderTasks(newOrder){
+    const tasks = loadTasks().slice().sort((a,b)=>a.order-b.order);
+    newOrder.forEach((id, idx)=>{
+      const i = tasks.findIndex(t=>t.id===id);
+      if(i>-1) tasks[i].order = idx;
+    });
+    saveTasks(tasks); renderTasks();
+  }
+
+  // --- Reset quotidien ---
+  function captureTodayToHistory(){
+    const tasks = loadTasks().slice().sort((a,b)=>a.order-b.order);
+    const h = loadHistory();
+    const d = todayStr();
+    const snapshot = {
+      date: d,
+      tasks: tasks.map(t=>t.id),
+      names: Object.fromEntries(tasks.map(t=>[t.id, t.name])),
+      completed: Object.fromEntries(tasks.map(t=>[t.id, !!t.done]))
+    };
+    h[d] = snapshot;
+    saveHistory(h);
+  }
+
+  function clearDoneForNewDay(){
+    const tasks = loadTasks().map(t => ({...t, done:false}));
+    saveTasks(tasks);
+  }
+
+  function dailyResetNow(){
+    captureTodayToHistory(); // enregistre l'état courant (inclut toutes nouvelles tâches)
+    clearDoneForNewDay();    // décoche pour la nouvelle journée
+    setLastReset(todayStr());
+    renderTasks();
+  }
+
+  function autoResetIfNeeded(){
+    const last = getLastReset();
+    const today = todayStr();
+    if(last !== today){
+      // Si on n'a pas encore enregistré aujourd'hui, on capture la veille si déjà fait aujourd'hui ?
+      // Comportement choisi : on enregistre l'état courant comme la journée révolue et on repart à zéro.
+      dailyResetNow();
+    }
+  }
+
+  function msUntilNextMidnight(){
+    const now = new Date();
+    const next = new Date(now);
+    next.setHours(24,0,0,0);
+    return next - now;
+  }
+
+  function scheduleMidnight(){
+    setTimeout(()=>{
+      dailyResetNow();
+      scheduleMidnight();
+    }, msUntilNextMidnight());
+  }
+
+  // --- Rendu ---
+  const taskList = document.getElementById('task-list');
+  const todayLabel = document.getElementById('today-label');
+
+  function renderTasks(){
+    const tasks = loadTasks().slice().sort((a,b)=>a.order-b.order);
+    taskList.innerHTML = '';
+    tasks.forEach(t=>{
+      const li = document.createElement('li');
+      li.className = 'task';
+      li.draggable = true;
+      li.dataset.id = t.id;
+      li.innerHTML = \`
+        <span class="drag" title="Glisser">☰</span>
+        <label>
+          <input type="checkbox" \${t.done?'checked':''} />
+          <input type="text" class="name" value="\${t.name.replace(/"/g,'&quot;')}" />
+        </label>
+        <button class="btn danger del">✕</button>
+      \`;
+      const cb = li.querySelector('input[type=checkbox]');
+      cb.addEventListener('change', e=> toggleDone(t.id, e.target.checked));
+      const nameInput = li.querySelector('.name');
+      nameInput.addEventListener('change', e=> renameTask(t.id, e.target.value));
+      li.querySelector('.del').addEventListener('click', ()=> removeTask(t.id));
+
+      // drag events
+      li.addEventListener('dragstart', ()=> li.classList.add('dragging'));
+      li.addEventListener('dragend', ()=> {
+        li.classList.remove('dragging');
+        const ids = Array.from(taskList.children).map(el=>el.dataset.id);
+        reorderTasks(ids);
+      });
+      taskList.appendChild(li);
+    });
+    // dragover on container to reorder
+    taskList.addEventListener('dragover', (e)=>{
+      e.preventDefault();
+      const dragging = document.querySelector('.task.dragging');
+      if(!dragging) return;
+      const after = Array.from(taskList.querySelectorAll('.task:not(.dragging)')).find(el=>{
+        const rect = el.getBoundingClientRect();
+        return e.clientY <= rect.top + rect.height/2;
+      });
+      if(after) taskList.insertBefore(dragging, after); else taskList.appendChild(dragging);
+    }, {once:true});
+
+    todayLabel.textContent = new Date().toLocaleDateString('fr-FR', {weekday:'long', day:'2-digit', month:'long', year:'numeric'});
+  }
+
+  // --- Stats ---
+  function dateToKey(d){ return d.toLocaleDateString('fr-CA'); } // YYYY-MM-DD
+  function addDays(d, n){ const x = new Date(d); x.setDate(x.getDate()+n); return x; }
+  function startOfDay(d){ const x = new Date(d); x.setHours(0,0,0,0); return x; }
+
+  function computeRange(type, n){
+    const h = loadHistory();
+    const keys = Object.keys(h).sort(); // asc
+    if(type==='all' || keys.length===0) return {from:null, to:null, keys};
+
+    const today = startOfDay(new Date());
+    let from;
+    if(type==='days') from = addDays(today, -(n-1));
+    if(type==='weeks') from = addDays(today, -(n*7-1));
+    if(type==='months'){
+      const f = new Date(today);
+      f.setMonth(f.getMonth()-n+1);
+      from = f;
+    }
+    const fromKey = dateToKey(from);
+    const filtered = keys.filter(k => k >= fromKey);
+    return {from:fromKey, to:dateToKey(today), keys:filtered};
+  }
+
+  function recalcStats(){
+    const type = document.getElementById('range-type').value;
+    const n = parseInt(document.getElementById('range-n').value || '1', 10);
+    const {keys} = computeRange(type, n);
+    const h = loadHistory();
+
+    // Global: moyenne des pourcentages journaliers (pondérée par le nb de tâches du jour)
+    let dayPercents = [];
+    const perTask = {}; // id -> {name, successDays, existedDays}
+    keys.forEach(k=>{
+      const snap = h[k];
+      if(!snap) return;
+      const ids = snap.tasks || [];
+      const done = snap.completed || {};
+      const total = ids.length || 0;
+      const completed = ids.reduce((acc,id)=>acc + (done[id]?1:0), 0);
+      if(total>0) dayPercents.push(completed/total);
+
+      ids.forEach(id=>{
+        if(!perTask[id]) perTask[id]={name: snap.names?.[id] || '(sans nom)', successDays:0, existedDays:0};
+        perTask[id].existedDays++;
+        if(done[id]) perTask[id].successDays++;
+      });
+    });
+
+    const overall = dayPercents.length? Math.round((dayPercents.reduce((a,b)=>a+b,0)/dayPercents.length)*100):0;
+    document.getElementById('overall-rate').textContent = overall + '%';
+    document.getElementById('days-covered').textContent = String(dayPercents.length);
+    const container = document.getElementById('per-task');
+    container.innerHTML='';
+    const entries = Object.entries(perTask).sort((a,b)=> (b[1].successDays/b[1].existedDays) - (a[1].successDays/a[1].existedDays));
+    entries.forEach(([id,info])=>{
+      const pct = info.existedDays? Math.round((info.successDays/info.existedDays)*100):0;
+      const row = document.createElement('div');
+      row.className='row';
+      row.style.margin='8px 0';
+      row.innerHTML = \`
+        <div class="pill" style="min-width:64px;text-align:center">\${pct}%</div>
+        <div style="flex:1;font-weight:600">\${info.name}</div>
+        <div class="muted">\${info.successDays} / \${info.existedDays} jours</div>
+      \`;
+      container.appendChild(row);
+    });
+
+    // Historique (liste)
+    const hist = document.getElementById('history-list');
+    hist.innerHTML='';
+    keys.slice().reverse().forEach(k=>{
+      const snap = h[k];
+      if(!snap) return;
+      const ids = snap.tasks || [];
+      const done = snap.completed || {};
+      const total = ids.length;
+      const completed = ids.reduce((acc,id)=>acc + (done[id]?1:0), 0);
+      const pct = total? Math.round(100*completed/total):0;
+      const div = document.createElement('div');
+      div.className='row';
+      div.style.margin='6px 0';
+      div.innerHTML = \`<span class="pill" style="min-width:64px;text-align:center">\${pct}%</span>
+        <strong style="min-width:120px">\${new Date(k).toLocaleDateString('fr-FR')}</strong>
+        <span class="muted">\${completed} / \${total} accomplies</span>\`;
+      hist.appendChild(div);
+    });
+  }
+
+  // --- UI events ---
+  document.getElementById('add-task-btn').addEventListener('click', ()=>{
+    const input = document.getElementById('new-task-input');
+    const name = input.value.trim();
+    if(!name) return;
+    addTask(name);
+    input.value='';
+  });
+  document.getElementById('new-task-input').addEventListener('keydown', (e)=>{
+    if(e.key==='Enter'){ document.getElementById('add-task-btn').click(); }
+  });
+
+  document.getElementById('reset-now').addEventListener('click', ()=>{
+    dailyResetNow();
+    alert('Journal du jour enregistré et tâches réinitialisées.');
+  });
+
+  document.getElementById('clear-all').addEventListener('click', ()=>{
+    if(confirm('Supprimer toutes les tâches ?')){
+      localStorage.removeItem(LS.tasks);
+      renderTasks();
+    }
+  });
+
+  // Tabs
+  const tabTasks = document.getElementById('tab-tasks');
+  const tabStats = document.getElementById('tab-stats');
+  const viewTasks = document.getElementById('view-tasks');
+  const viewStats = document.getElementById('view-stats');
+  function activate(tab){
+    if(tab==='tasks'){
+      tabTasks.classList.add('active'); tabStats.classList.remove('active');
+      viewTasks.style.display='block'; viewStats.style.display='none';
+    } else {
+      tabStats.classList.add('active'); tabTasks.classList.remove('active');
+      viewStats.style.display='block'; viewTasks.style.display='none';
+      recalcStats();
+    }
+  }
+  tabTasks.addEventListener('click', ()=>activate('tasks'));
+  tabStats.addEventListener('click', ()=>activate('stats'));
+
+  document.getElementById('range-type').addEventListener('change', (e)=>{
+    const showN = e.target.value!=='all';
+    document.getElementById('n-wrapper').style.display = showN ? 'inline-block' : 'none';
+  });
+  document.getElementById('recalc').addEventListener('click', recalcStats);
+
+  document.getElementById('export-json').addEventListener('click', ()=>{
+    const data = {
+      tasks: loadTasks(),
+      history: loadHistory(),
+      lastReset: getLastReset()
+    };
+    const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href=url; a.download='daily-tasks-data.json'; a.click();
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  });
+
+  // --- PWA ---
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', ()=>{
+      navigator.serviceWorker.register('./service-worker.js');
+    });
+  }
+
+  // --- Init ---
+  autoResetIfNeeded();       // évite le bug des nouvelles tâches non comptées
+  scheduleMidnight();
+  renderTasks();
+  </script>
+</body>
+</html>
