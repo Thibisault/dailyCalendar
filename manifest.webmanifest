@@ -1,11 +1,11 @@
 {
-  "name": "Routine Quotidienne — PWA",
-  "short_name": "Routine",
+  "name": "Checklist Quotidienne",
+  "short_name": "Checklist",
   "start_url": ".",
-  "display": "standalone",
-  "background_color": "#0b1220",
-  "theme_color": "#0b1220",
   "scope": ".",
+  "display": "standalone",
+  "background_color": "#f5f7fb",
+  "theme_color": "#f5f7fb",
   "icons": [
     {
       "src": "icons/icon-192.png",
