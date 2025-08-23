@@ -1,7 +1,6 @@
 /* ---------- Thème moderne, doux & relaxant ---------- */
 * { box-sizing: border-box; }
 :root{
-  /* Palette claire (apaisée) */
   --bg-1:#eef2f7;
   --bg-2:#e9eff5;
 
@@ -86,6 +85,7 @@ body{
   }
 }
 h1{ margin:0; font-size: 1.2rem; letter-spacing: .2px; }
+.header-actions{ display:flex; gap:8px; align-items:center; }
 
 /* ---------- Layout ---------- */
 main{ width:min(950px, 92vw); margin: 18px auto 26px; flex:1; }
@@ -171,7 +171,6 @@ input[type="text"]:focus, select:focus{
 .btn:hover{ transform: translateY(-1px); box-shadow: var(--shadow-lg); }
 .btn:active{ transform: translateY(0); filter: brightness(.98); }
 .btn:disabled{ opacity:.6; cursor:not-allowed; }
-
 .btn.secondary{
   background: linear-gradient(170deg, color-mix(in oklab, var(--muted) 40%, #ffffff 60%), color-mix(in oklab, var(--muted) 30%, #ffffff 70%));
   color: var(--text);
@@ -180,6 +179,15 @@ input[type="text"]:focus, select:focus{
   background: linear-gradient(170deg, var(--danger), color-mix(in oklab, var(--danger) 75%, #ffffff 25%));
   color: #fff;
 }
+.btn.ghost{
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+
+/* Language toggle visual tweak */
+#langToggle{ display:inline-flex; align-items:center; gap:8px; }
 
 .footer-row{ margin-top: 14px; display:flex; justify-content:flex-end; gap:10px; }
 
@@ -258,7 +266,7 @@ input[type="checkbox"]{
 }
 .empty{ color: var(--muted); font-style: italic; }
 
-/* ---------- Hints / Toast ---------- */
+/* ---------- Toast ---------- */
 .toast{
   position: fixed; left:50%; bottom: 22px; transform: translateX(-50%) translateY(16px);
   background: color-mix(in oklab, #0b0f18 85%, var(--brand) 15%);

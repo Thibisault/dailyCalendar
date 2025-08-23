@@ -1,5 +1,5 @@
-// Simple offline-first cache (v3)
-const CACHE = 'dq-cache-v3';
+// Offline-first cache (v4, i18n)
+const CACHE = 'dq-cache-v4';
 const ASSETS = [
   './',
   './index.html',

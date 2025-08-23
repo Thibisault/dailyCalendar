@@ -12,8 +12,11 @@
 </head>
 <body>
   <header class="app-header">
-    <h1>Checklist Quotidienne</h1>
-    <button id="installBtn" class="btn secondary" title="Installer l'app">Installer</button>
+    <h1 id="appTitle">Checklist Quotidienne</h1>
+    <div class="header-actions">
+      <button id="langToggle" class="btn ghost" title="Langue / 语言">🌐 FR</button>
+      <button id="installBtn" class="btn secondary" title="Installer">Installer</button>
+    </div>
   </header>
 
   <main>
@@ -29,19 +32,19 @@
         <button id="addTaskBtn" class="btn">Ajouter</button>
       </div>
 
-      <p class="hint">Astuce : glissez-déposez pour réorganiser.</p>
+      <p id="hintDrag" class="hint">Astuce : glissez-déposez pour réorganiser.</p>
 
       <ul id="taskList" class="task-list" aria-live="polite"></ul>
 
       <div class="footer-row">
-        <button id="resetTodayBtn" class="btn danger" title="Tout décocher et enregistrer la journée">Clôturer la journée maintenant</button>
+        <button id="resetTodayBtn" class="btn danger" title="Clôturer">Clôturer la journée maintenant</button>
       </div>
     </section>
 
     <!-- STATISTIQUES -->
     <section id="viewStats" class="view" aria-labelledby="tabStats">
       <div class="filters">
-        <label for="rangePreset">Période :</label>
+        <label id="labelPeriod" for="rangePreset">Période :</label>
         <select id="rangePreset">
           <option value="today">Aujourd'hui</option>
           <option value="3d">3 derniers jours</option>
@@ -53,13 +56,13 @@
 
       <div class="stats-panels">
         <section class="card">
-          <h2>Succès global</h2>
+          <h2 id="h2Global">Succès global</h2>
           <p id="globalPct" class="big-number">—%</p>
           <p class="muted" id="globalRangeLabel"></p>
         </section>
 
         <section class="card">
-          <h2>Par tâche</h2>
+          <h2 id="h2PerTask">Par tâche</h2>
           <div id="perTaskStats"></div>
         </section>
       </div>
@@ -67,7 +70,7 @@
   </main>
 
   <footer class="app-footer">
-    <small>Fonctionne hors-ligne • Données stockées localement</small>
+    <small id="footerNote">Fonctionne hors-ligne • Données stockées localement</small>
   </footer>
 
   <script src="app.js"></script>
